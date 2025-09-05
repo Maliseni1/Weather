@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>motek Weather</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js" defer></script>
+</head>
+<body>
+    <div class="cloud-container">
+        <div class="cloud x1"></div>
+        <div class="cloud x2"></div>
+        <div class="cloud x3"></div>
+        <div class="cloud x4"></div>
+        <div class="cloud x5"></div>
+    </div>
+
+    <div class="overlay"></div>
+
+    <div class="content-wrapper">
+        <div class="weather-card">
+            <div class="search">
+                <input type="text" placeholder="Enter city name">
+                <button>🔍</button>
+                <button id="location-btn">📍</button>
+            </div>
+            <div class="weather-display">
+                <h1 class="city">Weather in Lusaka</h1>
+                <h2 class="temp">23°C</h2>
+                <div class="details">
+                    <img src="" alt="weather icon" class="icon">
+                    <div class="description">Cloudy</div>
+                </div>
+                <div class="humidity">Humidity: 60%</div>
+                <div class="wind">Wind speed: 3.5 km/h</div>
+                <p class="ai-advice">Getting advice...</p>
+            </div>
+            <div class="trademark">
+                &copy; 2025 Motek Solutions
+            </div>
+        </div>
+    </div>
+
+    <div id="location-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3>Use Your Current Location?</h3>
+            <p>To provide you with the most accurate local weather, allow us to access your current location.</p>
+            <div class="modal-buttons">
+                <button id="modal-deny-btn">Later</button>
+                <button id="modal-allow-btn">Allow</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
