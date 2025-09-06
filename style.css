@@ -14,6 +14,14 @@ body {
     background-position: center;
 }
 
+.local-time {
+    font-size: 1.1em;
+    font-weight: 300;
+    opacity: 0.8;
+    margin-bottom: 1em; /* Add space between time and temperature */
+    margin-top: -0.2em; /* Nudge it a bit closer to the city name */
+}
+
 .overlay {
     position: absolute;
     top: 0;

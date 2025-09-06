@@ -16,8 +16,26 @@ const locationButton = document.querySelector("#location-btn");
 const locationModal = document.querySelector("#location-modal");
 const modalAllowButton = document.querySelector("#modal-allow-btn");
 const modalDenyButton = document.querySelector("#modal-deny-btn");
+// --- NEW: Get reference to local time element ---
+const localTimeElement = document.querySelector(".local-time");
 
-// --- API and Data Handling ---
+// --- Geocoding Function ---
+function geocodeLocation(searchText) {
+    const geocodeApiUrl = `https://api.openweathermap.org/geo/1.0/direct?q=${searchText}&limit=1&appid=${apiKey}`;
+    fetch(geocodeApiUrl)
+        .then(response => response.json())
+        .then(data => {
+            if (!data.length) {
+                alert("Could not find that location. Please try being more specific.");
+                return;
+            }
+            const { lat, lon } = data[0];
+            getWeather({ latitude: lat, longitude: lon });
+        })
+        .catch(error => console.error("Error during geocoding:", error));
+}
+
+// --- Weather Fetching Function ---
 function getWeather(cityOrCoords) {
     let apiUrl = "";
     if (typeof cityOrCoords === 'string') {
@@ -26,25 +44,30 @@ function getWeather(cityOrCoords) {
         const { latitude, longitude } = cityOrCoords;
         apiUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${apiKey}&units=metric`;
     }
-
     fetch(apiUrl)
-        .then(response => {
-            if (!response.ok) {
-                alert("Location not found. Please try another city.");
-                throw new Error("Network response was not ok");
-            }
-            return response.json();
-        })
+        .then(response => response.json())
         .then(displayWeather)
-        .catch(error => {
-            console.error("Error fetching weather data:", error);
-            aiAdviceElement.innerText = "Could not get weather advice. Please try again.";
-        });
+        .catch(error => console.error("Error fetching weather data:", error));
 }
 
 // --- UI Updates ---
 function displayWeather(data) {
-    cityElement.innerText = `Weather in ${data.name}`;
+    // --- NEW: Calculate and display local time ---
+    const reportTimestamp = data.dt;
+    const timezoneOffset = data.timezone;
+    const localTimestamp = (reportTimestamp + timezoneOffset) * 1000;
+    const localDate = new Date(localTimestamp);
+    
+    // Use toUTCString and slice to avoid timezone issues of the user's browser
+    const timeString = localDate.toUTCString().slice(17, 22); 
+    const hours = parseInt(timeString.slice(0, 2), 10);
+    const minutes = timeString.slice(3, 5);
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const formattedHours = hours % 12 || 12; // convert 0 to 12 for 12AM
+    localTimeElement.innerText = `Local time: ${formattedHours}:${minutes} ${ampm}`;
+
+    // --- Update rest of the weather data ---
+    cityElement.innerText = `Weather in ${data.name}, ${data.sys.country}`;
     tempElement.innerText = `${Math.round(data.main.temp)}°C`;
     descriptionElement.innerText = data.weather[0].description;
     humidityElement.innerText = `Humidity: ${data.main.humidity}%`;
@@ -53,25 +76,40 @@ function displayWeather(data) {
     aiAdviceElement.innerText = generateAIAdvice(data);
 }
 
-// --- AI Weather Assistant ---
+// --- MODIFIED: The AI Brain is now time-aware ---
 function generateAIAdvice(data) {
     const temp = data.main.temp;
     const mainCondition = data.weather[0].main;
     const windSpeed = data.wind.speed;
+    
+    // --- NEW: Day/Night Logic ---
+    const isDayTime = data.dt > data.sys.sunrise && data.dt < data.sys.sunset;
+    
     let advice = "";
 
+    // MODIFIED: Advice now changes based on time of day
     if (mainCondition === "Rain") advice = "It's raining! Best to take an umbrella and a waterproof jacket. ";
     else if (mainCondition === "Snow") advice = "It's snowing! Time to bundle up in a warm coat, hat, and gloves. ";
     else if (mainCondition === "Thunderstorm") advice = "There's a thunderstorm. It's safest to stay indoors if you can. ";
-    else if (mainCondition === "Clear") advice = "It's a beautiful clear day! ";
-    else if (mainCondition === "Clouds") advice = "It's cloudy, but that's no reason to stay inside. ";
+    else if (mainCondition === "Clear") {
+        advice = isDayTime ? "It's a beautiful clear day! " : "It's a clear night, perfect for stargazing. ";
+    } else if (mainCondition === "Clouds") {
+        advice = isDayTime ? "It's cloudy, but that's no reason to stay inside. " : "It's a cloudy night. ";
+    }
 
-    if (temp > 25) advice += "Properly hot. Shorts and a light t-shirt are the way to go.";
-    else if (temp > 15) advice += "It's mild and pleasant. A long-sleeve shirt or a light sweater should be perfect.";
-    else if (temp > 5) advice += "Quite chilly out there. A warm jacket is definitely needed.";
-    else advice += "It's very cold. Be sure to wear a heavy coat, a scarf, and a hat.";
+    if (temp > 25) {
+        advice += "Properly hot. Shorts and a light t-shirt are the way to go.";
+    } else if (temp > 15) {
+        advice += isDayTime 
+            ? "It's mild and pleasant. A long-sleeve shirt or a light sweater should be perfect." 
+            : "It's a cool evening. A light jacket would be a good idea.";
+    } else if (temp > 5) {
+        advice += "Quite chilly out there. A warm jacket is definitely needed.";
+    } else {
+        advice += "It's very cold. Be sure to wear a heavy coat, a scarf, and a hat.";
+    }
 
-    if (windSpeed > 15) advice += " And it's a bit windy, so hold onto your hat!";
+    if (windSpeed > 15) advice += " And it's a bit windy!";
     return advice;
 }
 
@@ -79,8 +117,8 @@ function generateAIAdvice(data) {
 function handleSearch() {
     const city = searchInput.value.trim();
     if (city) {
-        aiAdviceElement.innerText = `Getting advice for ${city}...`;
-        getWeather(city);
+        aiAdviceElement.innerText = `Looking for ${city}...`;
+        geocodeLocation(city);
         searchInput.value = "";
     }
 }
